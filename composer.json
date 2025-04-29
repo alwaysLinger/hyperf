@@ -99,6 +99,7 @@
     "replace": {
         "hyperf/amqp": "*",
         "hyperf/async-queue": "*",
+        "hyperf/barrier": "*",
         "hyperf/cache": "*",
         "hyperf/carbon": "*",
         "hyperf/circuit-breaker": "*",
@@ -212,6 +213,7 @@
         "psr-4": {
             "Hyperf\\Amqp\\": "src/amqp/src/",
             "Hyperf\\AsyncQueue\\": "src/async-queue/src/",
+            "Hyperf\\Barrier\\": "src/barrier/src/",
             "Hyperf\\Cache\\": "src/cache/src/",
             "Hyperf\\Carbon\\": "src/carbon/src/",
             "Hyperf\\CircuitBreaker\\": "src/circuit-breaker/src/",
@@ -337,6 +339,7 @@
             "Grpc\\": "src/grpc-client/tests/Grpc/",
             "HyperfTest\\Amqp\\": "src/amqp/tests/",
             "HyperfTest\\AsyncQueue\\": "src/async-queue/tests/",
+            "HyperfTest\\Barrier\\": "src/barrier/tests/",
             "HyperfTest\\Cache\\": "src/cache/tests/",
             "HyperfTest\\Carbon\\": "src/carbon/tests/",
             "HyperfTest\\CircuitBreaker\\": "src/circuit-breaker/tests/",
@@ -454,6 +457,7 @@
             "config": [
                 "Hyperf\\Amqp\\ConfigProvider",
                 "Hyperf\\AsyncQueue\\ConfigProvider",
+                "Hyperf\\Barrier\\ConfigProvider",
                 "Hyperf\\Cache\\ConfigProvider",
                 "Hyperf\\Carbon\\ConfigProvider",
                 "Hyperf\\CircuitBreaker\\ConfigProvider",
