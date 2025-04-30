@@ -23,10 +23,8 @@ class CounterBarrier implements BarrierInterface
 
     private Channel $channel;
 
-    public function __construct(
-        protected string $key,
-        protected int $parties
-    ) {
+    public function __construct(protected int $parties)
+    {
         $this->channel = new Channel(1);
     }
 
@@ -38,7 +36,7 @@ class CounterBarrier implements BarrierInterface
         $ret = $this->channel->pop($timeout);
         if ($ret === false && $this->channel->isTimeout()) {
             --$this->waiters;
-            throw new TimeoutException(sprintf('Barrier await timed out on key "%s" with %d parties, current waiters: %d', $this->key, $this->parties, $this->waiters));
+            throw new TimeoutException(sprintf('Barrier await timed out, current waiters: %d, expected parties: %d', $this->waiters, $this->parties));
         }
         --$this->waiters;
     }

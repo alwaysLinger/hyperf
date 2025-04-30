@@ -15,6 +15,7 @@ namespace Hyperf\Barrier;
 use Exception;
 use Hyperf\Barrier\Exception\BarrierException;
 use Hyperf\Barrier\Exception\RuntimeException;
+use Hyperf\Barrier\Exception\TimeoutException;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Support\Traits\Container;
 use WeakMap;
@@ -29,7 +30,7 @@ class BarrierManager
      * @throws BarrierException
      * @throws Exception
      */
-    public static function awaitOnCounter(string $barrierKey, int $parties, float $timeout = -1): void
+    public static function awaitForCounter(string $barrierKey, int $parties, float $timeout = -1): void
     {
         if (! Coroutine::inCoroutine()) {
             throw new RuntimeException('Barrier can only be used in coroutine environment');
@@ -41,28 +42,28 @@ class BarrierManager
 
         $batchKey = $barrierKey . $parties;
         if (! self::has($batchKey)) {
-            self::setBarrier($batchKey, new CounterBarrier($barrierKey, $parties));
+            self::setBarrier($batchKey, new CounterBarrier($parties));
         }
 
         $barrier = self::getBarrier($batchKey);
         if ($barrier->broken() || $barrier->waiters() == $parties) {
-            $barrier = new CounterBarrier($barrierKey, $parties);
+            $barrier = new CounterBarrier($parties);
             self::setBarrier($batchKey, $barrier);
         }
 
         try {
             $barrier->await($timeout);
-        } catch (BarrierException $ex) {
-            $exception = $ex;
+        } catch (BarrierException $exception) {
+            if ($exception instanceof TimeoutException) {
+                $exception = new TimeoutException(sprintf('Barrier %s await timed out, current waiters: %d, expected parties: %d', $barrierKey, $barrier->waiters(), $parties));
+            }
+            throw $exception;
         } finally {
             if ($barrier->broken() && $barrier->waiters() == 0) {
                 self::clearLatestBarrier($batchKey, $barrier);
                 unset($barrier);
             }
             self::clearBarrier($batchKey);
-            if (isset($exception)) {
-                throw $exception;
-            }
         }
     }
 
@@ -95,7 +96,7 @@ class BarrierManager
     {
         /** @var WeakMap $map */
         $map = self::get($batchKey);
-        if ((int) $map?->count() === 0) {
+        if ($map && $map->count() === 0) {
             unset(self::$container[$batchKey]);
         }
     }
