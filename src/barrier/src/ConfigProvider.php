@@ -12,10 +12,16 @@ declare(strict_types=1);
 
 namespace Hyperf\Barrier;
 
+use Hyperf\Barrier\Aspect\BarrierAspect;
+
 class ConfigProvider
 {
     public function __invoke(): array
     {
-        return [];
+        return [
+            'aspects' => [
+                BarrierAspect::class,
+            ],
+        ];
     }
 }
