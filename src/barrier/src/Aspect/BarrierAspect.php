@@ -18,6 +18,7 @@ use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\Di\Aop\AbstractAspect;
 use Hyperf\Di\Aop\ProceedingJoinPoint;
 use Hyperf\Di\Exception\AnnotationException;
+use Hyperf\Di\Exception\Exception;
 use Hyperf\Stringable\Str;
 
 use function Hyperf\Collection\data_get;
@@ -28,9 +29,16 @@ class BarrierAspect extends AbstractAspect
         Barrier::class,
     ];
 
+    /**
+     * @throws Exception
+     * @throws AnnotationException
+     */
     public function process(ProceedingJoinPoint $proceedingJoinPoint)
     {
         $annotation = $this->barrierAnnotation($proceedingJoinPoint->className, $proceedingJoinPoint->methodName);
+        if ($annotation === null) {
+            throw new AnnotationException("Annotation Barrier couldn't be collected successfully.");
+        }
         if (is_null($annotation->value)) {
             return $proceedingJoinPoint->process();
         }
