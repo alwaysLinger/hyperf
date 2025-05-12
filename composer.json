@@ -203,7 +203,8 @@
         "hyperf/view-engine": "*",
         "hyperf/watcher": "*",
         "hyperf/websocket-client": "*",
-        "hyperf/websocket-server": "*"
+        "hyperf/websocket-server": "*",
+        "hyperf/worker-pool": "*"
     },
     "suggest": {},
     "minimum-stability": "dev",
@@ -314,7 +315,8 @@
             "Hyperf\\View\\": "src/view/src/",
             "Hyperf\\Watcher\\": "src/watcher/src/",
             "Hyperf\\WebSocketClient\\": "src/websocket-client/src/",
-            "Hyperf\\WebSocketServer\\": "src/websocket-server/src/"
+            "Hyperf\\WebSocketServer\\": "src/websocket-server/src/",
+            "Hyperf\\WorkerPool\\": "src/worker-pool/src/"
         },
         "files": [
             "src/async-queue/src/Functions.php",
@@ -435,6 +437,7 @@
             "HyperfTest\\Watcher\\": "src/watcher/tests/",
             "HyperfTest\\WebSocketClient\\": "src/websocket-client/tests/",
             "HyperfTest\\WebSocketServer\\": "src/websocket-server/tests/",
+            "HyperfTest\\WorkerPool\\": "src/worker-pool/tests/",
             "Hyperf\\IDEHelper\\": "src/ide-helper/src/",
             "Routeguide\\": "src/grpc-client/tests/Routeguide/",
             "UserService\\": "src/grpc-client/tests/UserService/"
@@ -537,7 +540,8 @@
                 "Hyperf\\View\\ConfigProvider",
                 "Hyperf\\Watcher\\ConfigProvider",
                 "Hyperf\\WebSocketClient\\ConfigProvider",
-                "Hyperf\\WebSocketServer\\ConfigProvider"
+                "Hyperf\\WebSocketServer\\ConfigProvider",
+                "Hyperf\\WorkerPool\\ConfigProvider"
             ]
         }
     },
