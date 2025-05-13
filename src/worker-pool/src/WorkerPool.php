@@ -152,7 +152,7 @@ class WorkerPool
 
     private function collectWorkers(): void
     {
-        if ($this->config->getGcIntervalMs() >= 0) {
+        if ($this->config->getGcIntervalMs() > 0) {
             $interval = $this->config->getGcIntervalMs();
             $this->gcChan = new Channel();
             go(function () use ($interval) {
