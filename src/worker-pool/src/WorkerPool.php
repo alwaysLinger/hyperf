@@ -74,7 +74,7 @@ class WorkerPool
     public function submitTask(TaskInterface $task, float $timeout = -1): mixed
     {
         if (! $this->running) {
-            throw new RuntimeException('Pool closed, cannot submit task');
+            throw new RuntimeException('WorkerPool closed, cannot submit task');
         }
 
         $worker = $this->getWorker($timeout);
@@ -89,6 +89,7 @@ class WorkerPool
     public function stop(): void
     {
         $this->running = false;
+        $this->workerChan->close();
         $this->gcChan?->close();
         foreach ($this->workers->getIterator() as $worker => $v) {
             $this->stopWorker($worker);
@@ -113,6 +114,10 @@ class WorkerPool
         $worker = $this->workerChan->pop($timeout);
         if ($worker === false && $this->workerChan->isTimeout()) {
             throw new TimeoutException('Waiting for available worker timeout');
+        }
+
+        if ($worker === false && $this->workerChan->isClosing()) {
+            throw new RuntimeException('WorkerPool closed');
         }
 
         return $worker;
@@ -142,6 +147,10 @@ class WorkerPool
 
     private function release(Worker $worker): void
     {
+        if (! $this->running) {
+            return;
+        }
+
         if ($this->workerChan->stats()['consumer_num'] > 0) {
             $this->workerChan->push($worker);
             return;
