@@ -103,7 +103,7 @@ class Config
             throw new ConfigException('Maximum blocks exceeds limit of ' . self::MAX_BLOCKS);
         }
 
-        if ($this->gcIntervalMs < -1) {
+        if ($this->gcIntervalMs != -1 && $this->gcIntervalMs < 100) {
             throw new ConfigException('Invalid collect inactive worker ms');
         }
     }

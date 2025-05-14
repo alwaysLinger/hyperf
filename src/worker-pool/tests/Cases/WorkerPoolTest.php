@@ -174,10 +174,10 @@ class WorkerPoolTest extends TestCase
     {
         $config = (new Config())->setCapacity(5)
             ->setPreSpawn(true)
-            ->setCollectInactiveWorker(5);
+            ->setCollectInactiveWorker(150);
 
         $pool = new WorkerPool($config);
-        usleep(15 * 1000);
+        usleep(400 * 1000);
 
         $reflection = new ReflectionClass($pool);
         $workersProperty = $reflection->getProperty('workers');
