@@ -25,6 +25,7 @@ use ReflectionClass;
 use Throwable;
 
 use function Hyperf\Coroutine\go;
+use function Hyperf\Coroutine\parallel;
 
 /**
  * @internal
@@ -248,6 +249,54 @@ class WorkerPoolTest extends TestCase
             $this->assertInstanceOf(TimeoutException::class, $th);
             $this->assertEquals('Waiting for available worker timeout', $th->getMessage());
         }
+
+        $pool->stop();
+    }
+
+    public function testConcurrencyLimit()
+    {
+        $capacity = 50;
+        $total = 1000;
+        $config = new Config();
+        $config->setCapacity($capacity)->setMaxBlocks($total - $capacity);
+        $pool = new WorkerPool($config);
+
+        $sleepMs = mt_rand(5, 10);
+        $startAt = microtime(true);
+        for ($i = 0; $i < $total; ++$i) {
+            $pool->submit(static fn () => usleep($sleepMs * 1000));
+        }
+        $endAt = microtime(true);
+
+        $this->assertGreaterThanOrEqual($total / $capacity * $sleepMs, (int) (($endAt - $startAt) * 1000));
+
+        $pool->stop();
+    }
+
+    public function testConcurrencyLimitWithTimeout()
+    {
+        $capacity = 50;
+        $total = 1000;
+        $config = new Config();
+        $extraNum = mt_rand(10, $total - $capacity);
+        $config->setCapacity($capacity)->setMaxBlocks($total - $capacity - $extraNum);
+        $pool = new WorkerPool($config);
+
+        $sleepMs = mt_rand(5, 10);
+        $exceptionNum = 0;
+        $tasks = [];
+        for ($i = 0; $i < $total; ++$i) {
+            $tasks[] = static function () use ($pool, $sleepMs, &$exceptionNum) {
+                try {
+                    $pool->submit(static fn () => usleep($sleepMs * 1000));
+                } catch (RuntimeException $e) {
+                    ++$exceptionNum;
+                }
+            };
+        }
+        parallel($tasks);
+
+        $this->assertEquals($extraNum, $exceptionNum);
 
         $pool->stop();
     }
