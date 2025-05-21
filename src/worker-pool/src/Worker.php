@@ -15,7 +15,6 @@ namespace Hyperf\WorkerPool;
 use Closure;
 use Hyperf\Engine\Channel;
 use Hyperf\WorkerPool\Exception\RuntimeException;
-use Hyperf\WorkerPool\Pool\Contracts\PoolInterface;
 use Hyperf\WorkerPool\Pool\Contracts\WithNodeInterface;
 use Hyperf\WorkerPool\Pool\Node;
 use Throwable;
@@ -47,11 +46,6 @@ class Worker implements WithNodeInterface
     public function setNode(Node $node): void
     {
         $this->node = $node;
-    }
-
-    public function setRef(PoolInterface $pool): void
-    {
-        $pool->ref($this);
     }
 
     public function submit(TaskInterface $task): mixed

@@ -12,14 +12,12 @@ declare(strict_types=1);
 
 namespace Hyperf\WorkerPool;
 
-use Closure;
 use Hyperf\Engine\Channel;
 use Hyperf\WorkerPool\Exception\RuntimeException;
-use Hyperf\WorkerPool\Exception\TimeoutException;
 use Hyperf\WorkerPool\Exception\WorkerPoolException;
-use Hyperf\WorkerPool\Pool\Contracts\PoolInterface;
-use Hyperf\WorkerPool\Pool\QueuePool;
-use Hyperf\WorkerPool\Pool\StackPool;
+use Hyperf\WorkerPool\Pool\Contracts\WorkerPoolInterface;
+use Hyperf\WorkerPool\Pool\WorkerQueuePool;
+use Hyperf\WorkerPool\Pool\WorkerStackPool;
 
 use function Hyperf\Coroutine\go;
 
@@ -27,15 +25,9 @@ class WorkerPool
 {
     private bool $running = true;
 
-    private int $runnings = 0;
-
-    private ?PoolInterface $workers;
-
     private ?Channel $gcChan = null;
 
-    private Channel $workerChan;
-
-    private Closure $workerDone;
+    private ?WorkerPoolInterface $workers;
 
     public function __construct(protected ?Config $config = null)
     {
@@ -44,20 +36,12 @@ class WorkerPool
         }
         $this->config->check();
 
-        $this->workerChan = new Channel();
-
         $this->workers = match ($this->config->getPoolType()) {
-            Config::QUEUE_POOL => new QueuePool($this->config->getCapacity()),
-            Config::STACK_POOL => new StackPool($this->config->getCapacity()),
+            Config::QUEUE_POOL => new WorkerQueuePool($this->config->getCapacity(), $this->config->isPreSpawn(), $this->config->getMaxBlocks()),
+            Config::STACK_POOL => new WorkerStackPool($this->config->getCapacity(), $this->config->isPreSpawn(), $this->config->getMaxBlocks()),
         };
 
-        $this->workerDone = $this->release(...);
-
         $this->collectWorkers();
-
-        if ($this->config->isPreSpawn()) {
-            $this->spawnWorkers($this->config->getCapacity());
-        }
     }
 
     /**
@@ -77,86 +61,21 @@ class WorkerPool
             throw new RuntimeException('WorkerPool closed, cannot submit task');
         }
 
-        $worker = $this->getWorker($timeout);
+        $worker = $this->workers->get($timeout);
 
         $ret = $worker->submit($task);
         if ($ret instanceof WorkerPoolException) {
             throw $ret;
         }
+
         return $ret;
     }
 
     public function stop(): void
     {
         $this->running = false;
-        $this->workerChan->close();
         $this->gcChan?->close();
-        foreach ($this->workers->getIterator() as $worker => $v) {
-            $this->stopWorker($worker);
-        }
-    }
-
-    private function getWorker(float $timeout = -1): Worker
-    {
-        $worker = $this->workers->detach();
-        if ($worker) {
-            return $worker;
-        }
-
-        if ($this->workers->count() == 0 && $this->config->getCapacity() > $this->runnings) {
-            return $this->startWorker();
-        }
-
-        if ($this->config->getMaxBlocks() <= 0 || $this->workerChan->stats()['consumer_num'] >= $this->config->getMaxBlocks()) {
-            throw new RuntimeException('WorkerPool exhausted');
-        }
-
-        $worker = $this->workerChan->pop($timeout);
-        if ($worker === false && $this->workerChan->isTimeout()) {
-            throw new TimeoutException('Waiting for available worker timeout');
-        }
-
-        if ($worker === false && $this->workerChan->isClosing()) {
-            throw new RuntimeException('WorkerPool closed');
-        }
-
-        return $worker;
-    }
-
-    private function spawnWorkers(int $num): void
-    {
-        for ($i = 0; $i < $num; ++$i) {
-            $this->workers->insert($this->startWorker());
-        }
-    }
-
-    private function startWorker(): Worker
-    {
-        ++$this->runnings;
-
-        $worker = (new Worker($this->workerDone))->run();
-        $worker->setRef($this->workers);
-        return $worker;
-    }
-
-    private function stopWorker(Worker $worker): void
-    {
-        $worker->stop();
-        --$this->runnings;
-    }
-
-    private function release(Worker $worker): void
-    {
-        if (! $this->running) {
-            return;
-        }
-
-        if ($this->workerChan->stats()['consumer_num'] > 0) {
-            $this->workerChan->push($worker);
-            return;
-        }
-
-        $this->workers->release($worker);
+        $this->workers->stop();
     }
 
     private function collectWorkers(): void
@@ -176,7 +95,7 @@ class WorkerPool
                     }
                     if ($this->gcChan->isTimeout()) {
                         $at = (int) (microtime(true) * 1000) - $interval;
-                        $this->workers->collectBefore($at);
+                        $this->workers->collect($at);
                         continue;
                     }
                     break;

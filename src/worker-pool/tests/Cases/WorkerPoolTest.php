@@ -185,7 +185,7 @@ class WorkerPoolTest extends TestCase
         $workersProperty->setAccessible(true);
         $workers = $workersProperty->getValue($pool);
 
-        $this->assertEquals(0, $workers->count());
+        $this->assertEquals(0, $workers->len());
 
         $pool->stop();
     }
