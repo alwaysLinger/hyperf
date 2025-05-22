@@ -19,6 +19,8 @@ use Hyperf\SingleFlight\Aspect\SingleFlightAspect;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
+use function Hyperf\Coroutine\parallel;
+
 /**
  * @internal
  * @coversNothing
@@ -27,7 +29,7 @@ class AspectTest extends TestCase
 {
     protected function tearDown(): void
     {
-        AnnotationCollector::clear('SingleFlightTestClass');
+        AnnotationCollector::clear();
     }
 
     public function testBarrierKey()
@@ -47,5 +49,27 @@ class AspectTest extends TestCase
         $result = $method->invoke($aspect, $proceedingJoinPoint);
 
         $this->assertEquals('arg1_arg2', $result);
+    }
+
+    public function testAspectProcess()
+    {
+        $mock = new SingleFlight('#{a}_#{b}');
+        AnnotationCollector::set('MockClass._m.mockMethod.' . SingleFlight::class, $mock);
+
+        $sleepMs = mt_rand(100, 200);
+        $callables = [];
+        $aspect = new SingleFlightAspect();
+        for ($i = 0; $i < 10000; ++$i) {
+            $point = new ProceedingJoinPoint(static fn () => $this->fail('testAspectProcess failed'), 'MockClass', 'mockMethod', ['keys' => ['a' => 1, 'b' => 2]]);
+            $point->pipe = static function () use ($sleepMs, $i) {
+                usleep($sleepMs * 1000);
+                return $i;
+            };
+            $callables[] = static fn () => $aspect->process($point);
+        }
+
+        $rets = parallel($callables);
+
+        $this->assertCount(1, array_unique($rets));
     }
 }
