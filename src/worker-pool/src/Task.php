@@ -56,6 +56,7 @@ class Task implements TaskInterface
         }
 
         $this->retChan->pop();
+
         return $this->ret;
     }
 }

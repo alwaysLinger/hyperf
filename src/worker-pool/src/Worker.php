@@ -58,6 +58,7 @@ class Worker implements WithNodeInterface
         if ($task->isSync()) {
             return $task->waitResult();
         }
+
         return null;
     }
 
